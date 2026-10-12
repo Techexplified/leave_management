@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Leave Management Connector</title>
+    <!-- Official Trello Power-Up Client Library -->
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <script>
+      window.TrelloPowerUp.initialize({
+        'board-buttons': function (t, options) {
+          return [
+            {
+              icon: {
+                dark: window.location.origin + '/icon.svg',
+                light: window.location.origin + '/icon.svg'
+              },
+              text: 'Leave Management',
+              callback: function (tContext) {
+                return tContext.modal({
+                  title: 'Leave & Time-Off Management',
+                  url: window.location.origin + '/index.html',
+                  height: 840,
+                  fullscreen: false
+                });
+              }
+            }
+          ];
+        },
+        'card-buttons': function (t, options) {
+          return [
+            {
+              icon: window.location.origin + '/icon.svg',
+              text: 'Request Leave / Status',
+              callback: function (tContext) {
+                return tContext.modal({
+                  title: 'Leave Management',
+                  url: window.location.origin + '/index.html',
+                  height: 840,
+                  fullscreen: false
+                });
+              }
+            }
+          ];
+        },
+        'card-badges': function (t, options) {
+          return Promise.all([
+            t.card('members'),
+            t.get('board', 'shared', 'leave_records')
+          ])
+            .then(function (results) {
+              var cardMembers = results[0].members || [];
+              var records = results[1] || [];
+
+              if (!cardMembers.length || !records.length) {
+                // Fallback check in localStorage for demo
+                try {
+                  var local = JSON.parse(localStorage.getItem('trello_leave_records') || '[]');
+                  if (local.length) records = local;
+                } catch(e) {}
+              }
+
+              var badges = [];
+              var now = new Date();
+              var todayStr = now.toISOString().slice(0, 10);
+
+              // Check if any card member is currently on approved leave
+              cardMembers.forEach(function (member) {
+                var memberLeaves = records.filter(function (r) {
+                  return r.status === 'Approved' &&
+                    (r.requesterId === member.id || r.requesterName.toLowerCase().indexOf(member.fullName.toLowerCase()) !== -1 || member.fullName.toLowerCase().indexOf(r.requesterName.toLowerCase()) !== -1);
+                });
+
+                memberLeaves.forEach(function (l) {
+                  var startShort = l.startDate ? l.startDate.slice(5) : '';
+                  var endShort = l.endDate ? l.endDate.slice(5) : '';
+                  var firstName = l.requesterName ? l.requesterName.split(' ')[0] : 'Member';
+
+                  badges.push({
+                    text: '⚠️ ' + firstName + ' on Leave (' + startShort + ' - ' + endShort + ')',
+                    color: 'yellow'
+                  });
+                });
+              });
+
+              return badges;
+            })
+            .catch(function () {
+              return [];
+            });
+        },
+        'card-detail-badges': function (t, options) {
+          return Promise.all([
+            t.card('members'),
+            t.get('board', 'shared', 'leave_records')
+          ])
+            .then(function (results) {
+              var cardMembers = results[0].members || [];
+              var records = results[1] || [];
+
+              var badges = [];
+              cardMembers.forEach(function (member) {
+                var memberLeaves = records.filter(function (r) {
+                  return r.status === 'Approved' &&
+                    (r.requesterId === member.id || r.requesterName.toLowerCase().indexOf(member.fullName.toLowerCase()) !== -1);
+                });
+
+                memberLeaves.forEach(function (l) {
+                  badges.push({
+                    title: 'Availability Status',
+                    text: '⚠️ ' + l.requesterName + ' on Leave (' + l.startDate + ' to ' + l.endDate + ')',
+                    color: 'yellow',
+                    callback: function (tContext) {
+                      return tContext.modal({
+                        title: 'Team Availability Roster',
+                        url: window.location.origin + '/index.html',
+                        height: 840,
+                        fullscreen: false
+                      });
+                    }
+                  });
+                });
+              });
+
+              return badges;
+            })
+            .catch(function () {
+              return [];
+            });
+        }
+      });
+    </script>
+  </head>
+  <body></body>
+</html>
