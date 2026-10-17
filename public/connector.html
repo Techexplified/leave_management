@@ -11,8 +11,8 @@
           return [
             {
               icon: {
-                dark: window.location.origin + '/icon.svg',
-                light: window.location.origin + '/icon.svg'
+                dark: window.location.origin + '/icon.png',
+                light: window.location.origin + '/icon-white.png'
               },
               text: 'Leave Management',
               callback: function (tContext) {
@@ -29,11 +29,11 @@
         'card-buttons': function (t, options) {
           return [
             {
-              icon: window.location.origin + '/icon.svg',
-              text: 'Request Leave / Status',
+              icon: window.location.origin + '/icon.png',
+              text: 'Leave Management',
               callback: function (tContext) {
                 return tContext.modal({
-                  title: 'Leave Management',
+                  title: 'Leave & Time-Off Management',
                   url: window.location.origin + '/index.html',
                   height: 840,
                   fullscreen: false
@@ -42,32 +42,41 @@
             }
           ];
         },
+        'card-back-section': function (t, options) {
+          return {
+            title: 'Leave & Availability Status',
+            icon: window.location.origin + '/icon.png',
+            content: {
+              type: 'iframe',
+              url: t.signUrl(window.location.origin + '/index.html'),
+              height: 500
+            }
+          };
+        },
         'card-badges': function (t, options) {
           return Promise.all([
             t.card('members'),
             t.get('board', 'shared', 'leave_records')
           ])
             .then(function (results) {
-              var cardMembers = results[0].members || [];
+              var cardMembers = (results[0] && results[0].members) ? results[0].members : [];
               var records = results[1] || [];
 
-              if (!cardMembers.length || !records.length) {
-                // Fallback check in localStorage for demo
+              if (!records.length) {
                 try {
-                  var local = JSON.parse(localStorage.getItem('trello_leave_records') || '[]');
+                  var local = JSON.parse(localStorage.getItem('trello_leave_records_v1') || '[]');
                   if (local.length) records = local;
                 } catch(e) {}
               }
 
               var badges = [];
-              var now = new Date();
-              var todayStr = now.toISOString().slice(0, 10);
-
-              // Check if any card member is currently on approved leave
               cardMembers.forEach(function (member) {
                 var memberLeaves = records.filter(function (r) {
                   return r.status === 'Approved' &&
-                    (r.requesterId === member.id || r.requesterName.toLowerCase().indexOf(member.fullName.toLowerCase()) !== -1 || member.fullName.toLowerCase().indexOf(r.requesterName.toLowerCase()) !== -1);
+                    (r.requesterId === member.id ||
+                     (r.requesterName && member.fullName &&
+                      (r.requesterName.toLowerCase().indexOf(member.fullName.toLowerCase()) !== -1 ||
+                       member.fullName.toLowerCase().indexOf(r.requesterName.toLowerCase()) !== -1)));
                 });
 
                 memberLeaves.forEach(function (l) {
@@ -94,14 +103,16 @@
             t.get('board', 'shared', 'leave_records')
           ])
             .then(function (results) {
-              var cardMembers = results[0].members || [];
+              var cardMembers = (results[0] && results[0].members) ? results[0].members : [];
               var records = results[1] || [];
 
               var badges = [];
               cardMembers.forEach(function (member) {
                 var memberLeaves = records.filter(function (r) {
                   return r.status === 'Approved' &&
-                    (r.requesterId === member.id || r.requesterName.toLowerCase().indexOf(member.fullName.toLowerCase()) !== -1);
+                    (r.requesterId === member.id ||
+                     (r.requesterName && member.fullName &&
+                      r.requesterName.toLowerCase().indexOf(member.fullName.toLowerCase()) !== -1));
                 });
 
                 memberLeaves.forEach(function (l) {
