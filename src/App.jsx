@@ -139,7 +139,7 @@ export default function App() {
             <TeamRosterView records={records} />
           )}
 
-          {!inTrello && activeTab === 'board' && (
+          {activeTab === 'board' && (
             <BoardBadgesPreview records={records} />
           )}
         </main>
