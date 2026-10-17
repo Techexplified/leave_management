@@ -7,7 +7,7 @@ import TeamRosterView from './components/TeamRosterView';
 import BoardBadgesPreview from './components/BoardBadgesPreview';
 import { TEAM_MEMBERS } from './data/mockData';
 import { getLeaveRecords, addLeaveRecord, updateLeaveStatus, resetDemoData } from './services/leaveStorage';
-import { getTrelloContext, autoSize } from './trelloPowerUp';
+import { getTrelloContext, autoSize, isInsideTrello } from './trelloPowerUp';
 import { RotateCcw } from 'lucide-react';
 
 export default function App() {
@@ -17,6 +17,7 @@ export default function App() {
   const [records, setRecords] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const inTrello = isInsideTrello();
 
   // Initialize Trello Power-Up context and load records
   useEffect(() => {
@@ -106,7 +107,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-50/60 flex flex-col justify-between selection:bg-emerald-100 selection:text-emerald-900">
       <div>
         <Header
           activeTab={activeTab}
@@ -114,10 +115,9 @@ export default function App() {
           currentUser={currentUser}
           setCurrentUser={setCurrentUser}
           pendingCount={pendingCount}
-          onRequestLeave={() => setIsModalOpen(true)}
         />
 
-        <main className="pb-12">
+        <main className="pb-8">
           {activeTab === 'employee' && (
             <EmployeeDashboard
               currentUser={currentUser}
@@ -139,28 +139,30 @@ export default function App() {
             <TeamRosterView records={records} />
           )}
 
-          {activeTab === 'board' && (
+          {!inTrello && activeTab === 'board' && (
             <BoardBadgesPreview records={records} />
           )}
         </main>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200/80 bg-white py-4 px-6 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-slate-700">Trello Power-Up: Leave Management</span>
-          <span>•</span>
-          <span>React 19 + Tailwind v4 + Trello Native SDK</span>
-        </div>
+      {/* Subtle Footer (Only outside Trello iframe) */}
+      {!inTrello && (
+        <footer className="border-t border-slate-200/80 bg-white py-3 px-6 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-600">Leave Management Power-Up</span>
+            <span>•</span>
+            <span>Standalone Demo Environment</span>
+          </div>
 
-        <button
-          onClick={handleResetData}
-          className="text-slate-500 hover:text-slate-800 flex items-center gap-1 transition-colors cursor-pointer text-xs"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset Sample Data</span>
-        </button>
-      </footer>
+          <button
+            onClick={handleResetData}
+            className="text-slate-400 hover:text-slate-700 flex items-center gap-1 transition-colors cursor-pointer text-xs"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Demo Data</span>
+          </button>
+        </footer>
+      )}
 
       {/* Request Leave Modal */}
       <RequestLeaveModal

@@ -1,96 +1,70 @@
-import React from 'react';
-import { Calendar, CheckCircle2, Users, ShieldAlert, LayoutGrid, Plus, UserCheck } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Calendar, CheckCircle2, Users, ShieldAlert, LayoutGrid, ChevronDown, Check } from 'lucide-react';
 import { TEAM_MEMBERS } from '../data/mockData';
+import { isInsideTrello } from '../trelloPowerUp';
 
 export default function Header({
   activeTab,
   setActiveTab,
   currentUser,
   setCurrentUser,
-  pendingCount,
-  onRequestLeave
+  pendingCount
 }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const inTrello = isInsideTrello();
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-      {/* Top Banner: Persona Switcher & Trello Status */}
-      <div className="bg-slate-900 text-slate-100 px-4 py-1.5 text-xs flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span className="font-medium text-slate-200">Trello Power-Up Live Environment</span>
-          <span className="text-slate-400">|</span>
-          <span className="text-slate-300">Active Board: <strong className="text-white">Sprint 42 — Platform & Engine</strong></span>
-        </div>
-
-        {/* Persona / Role Switcher */}
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 flex items-center gap-1">
-            <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-            Switch Active Persona:
-          </span>
-          <select
-            value={currentUser.id}
-            onChange={(e) => {
-              const selected = TEAM_MEMBERS.find(m => m.id === e.target.value);
-              if (selected) setCurrentUser(selected);
-            }}
-            className="bg-slate-800 text-emerald-300 border border-slate-700 text-xs rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-emerald-400 font-medium cursor-pointer"
-          >
-            {TEAM_MEMBERS.map(m => (
-              <option key={m.id} value={m.id}>
-                {m.name} ({m.isManager ? 'Manager / Approver' : 'Employee'})
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Main Header Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo & Title */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-md">
-              <Calendar className="w-6 h-6" />
+    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-2xs">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-14 gap-3">
+          {/* Logo & Power-Up Title */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+              <Calendar className="w-4 h-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-slate-900 leading-tight">Leave Management</h1>
-                <span className="bg-emerald-100 text-emerald-800 text-[11px] font-semibold px-2 py-0.5 rounded-full border border-emerald-200">
-                  Power-Up v1.0
-                </span>
-              </div>
-              <p className="text-xs text-slate-500">
-                Track personal leaves, approval workflows & team availability
-              </p>
+            <div className="hidden sm:block">
+              <span className="font-bold text-slate-900 text-sm tracking-tight">Leave Management</span>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <nav className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-sm">
+          {/* Clean Segmented Navigation Tabs */}
+          <nav className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs">
             <button
               onClick={() => setActiveTab('employee')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'employee'
-                  ? 'bg-white text-emerald-700 shadow-xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  ? 'bg-white text-emerald-800 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
             >
-              <Users className="w-4 h-4" />
+              <Users className="w-3.5 h-3.5" />
               <span>My Leaves</span>
             </button>
 
             <button
               onClick={() => setActiveTab('manager')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'manager'
-                  ? 'bg-white text-emerald-700 shadow-xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  ? 'bg-white text-emerald-800 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
             >
-              <ShieldAlert className="w-4 h-4" />
-              <span>Assigned Requests</span>
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>Approvals</span>
               {pendingCount > 0 && (
-                <span className="bg-amber-100 text-amber-800 text-xs px-1.5 py-0.2 rounded-full font-bold border border-amber-300">
+                <span className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.2 rounded-full font-bold border border-amber-300">
                   {pendingCount}
                 </span>
               )}
@@ -98,38 +72,83 @@ export default function Header({
 
             <button
               onClick={() => setActiveTab('roster')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'roster'
-                  ? 'bg-white text-emerald-700 shadow-xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  ? 'bg-white text-emerald-800 shadow-2xs font-semibold'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
             >
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Team Roster</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('board')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
-                activeTab === 'board'
-                  ? 'bg-white text-emerald-700 shadow-xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-              <span>Board Badges (Live)</span>
-            </button>
+            {/* Only show Board Simulation tab outside Trello */}
+            {!inTrello && (
+              <button
+                onClick={() => setActiveTab('board')}
+                className={`hidden md:flex px-2.5 py-1.5 rounded-lg font-medium transition-all items-center gap-1.5 cursor-pointer ${
+                  activeTab === 'board'
+                    ? 'bg-white text-emerald-800 shadow-2xs font-semibold'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Board Preview</span>
+              </button>
+            )}
           </nav>
 
-          {/* Quick Request Button */}
-          <div className="flex items-center gap-3">
+          {/* Sleek User / Persona Switcher */}
+          <div className="relative shrink-0" ref={dropdownRef}>
             <button
-              onClick={onRequestLeave}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 transition-colors shadow-2xs cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              <span>Request Leave</span>
+              <div className={`w-6 h-6 rounded-full ${currentUser.avatarColor || 'bg-blue-600'} text-white font-bold flex items-center justify-center text-[10px] shrink-0`}>
+                {currentUser.initials}
+              </div>
+              <span className="hidden md:inline font-semibold text-slate-900 truncate max-w-[110px]">
+                {currentUser.name}
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
+
+            {/* Persona Dropdown Menu */}
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-1.5 w-64 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="px-3 py-1.5 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Switch Active Role
+                </div>
+                <div className="max-h-64 overflow-y-auto py-1">
+                  {TEAM_MEMBERS.map((member) => {
+                    const isSelected = member.id === currentUser.id;
+                    return (
+                      <button
+                        key={member.id}
+                        onClick={() => {
+                          setCurrentUser(member);
+                          setDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors cursor-pointer ${
+                          isSelected ? 'bg-emerald-50 text-emerald-900' : 'hover:bg-slate-50 text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={`w-6 h-6 rounded-full ${member.avatarColor} text-white font-bold text-[10px] flex items-center justify-center shrink-0`}>
+                            {member.initials}
+                          </div>
+                          <div className="truncate">
+                            <div className="font-semibold text-slate-900 truncate">{member.name}</div>
+                            <div className="text-[10px] text-slate-500 truncate">{member.role}</div>
+                          </div>
+                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-2" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
