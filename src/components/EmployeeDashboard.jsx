@@ -1,10 +1,11 @@
 import React from 'react';
-import { Plus, Clock, CheckCircle2, AlertCircle, CalendarDays } from 'lucide-react';
+import { Plus, Clock, CheckCircle2, AlertCircle, CalendarDays, Trash2 } from 'lucide-react';
 
 export default function EmployeeDashboard({
   currentUser,
   records,
-  onRequestLeave
+  onRequestLeave,
+  onDeleteLeave
 }) {
   // Filter leaves submitted by the currently active user
   const userLeaves = records.filter(r => r.requesterId === currentUser.id);
@@ -142,7 +143,7 @@ export default function EmployeeDashboard({
                       </span>
                     </div>
 
-                    <div>
+                    <div className="flex items-center gap-2">
                       {isApproved && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           <CheckCircle2 className="w-3.5 h-3.5" />
@@ -161,18 +162,27 @@ export default function EmployeeDashboard({
                           Rejected
                         </span>
                       )}
+
+                      {/* Cancel / Delete action */}
+                      {onDeleteLeave && (
+                        <button
+                          onClick={() => {
+                            if (confirm('Cancel and delete this leave record?')) {
+                              onDeleteLeave(leave.id);
+                            }
+                          }}
+                          title="Delete / Cancel this request"
+                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer ml-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   <p className="text-xs sm:text-sm text-slate-600 bg-slate-50 rounded-lg p-2.5 my-2.5 border border-slate-100/80">
                     "{leave.reason}"
                   </p>
-
-                  {leave.coverageNotes && (
-                    <div className="text-[11px] text-slate-500 mb-2">
-                      <strong className="text-slate-700">Coverage Plan:</strong> {leave.coverageNotes}
-                    </div>
-                  )}
 
                   <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 pt-2 border-t border-slate-100">
                     <div className="flex items-center gap-2">

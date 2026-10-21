@@ -83,3 +83,10 @@ export async function updateLeaveStatus(t, recordId, status, approver, note = ''
   await saveLeaveRecords(t, updated);
   return updated;
 }
+
+export async function deleteLeaveRecord(t, recordId) {
+  const current = await getLeaveRecords(t);
+  const updated = current.filter(item => item.id !== recordId);
+  await saveLeaveRecords(t, updated);
+  return updated;
+}

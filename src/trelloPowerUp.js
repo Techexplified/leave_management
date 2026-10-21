@@ -61,23 +61,49 @@ export async function getBoardMembers(t) {
   return DEFAULT_STANDALONE_MEMBERS;
 }
 
-// Fetch currently logged-in Trello user
+// Fetch currently logged-in Trello user with context fallback
 export async function getCurrentTrelloMember(t) {
-  if (t && typeof t.member === 'function') {
-    try {
-      const m = await t.member('id', 'fullName', 'username', 'avatar', 'initials');
-      if (m && m.id) {
-        return {
-          id: m.id,
-          name: m.fullName || m.username || 'Current User',
-          username: m.username ? `@${m.username}` : '',
-          initials: m.initials || getInitials(m.fullName || m.username),
-          avatar: m.avatar || null,
-          avatarColor: getAvatarColor(m.id || m.fullName)
-        };
+  if (t) {
+    // 1. Try t.member()
+    if (typeof t.member === 'function') {
+      try {
+        const m = await t.member('id', 'fullName', 'username', 'avatar', 'initials');
+        if (m && m.id) {
+          return {
+            id: m.id,
+            name: m.fullName || m.username || 'Current User',
+            username: m.username ? `@${m.username}` : '',
+            initials: m.initials || getInitials(m.fullName || m.username),
+            avatar: m.avatar || null,
+            avatarColor: getAvatarColor(m.id || m.fullName)
+          };
+        }
+      } catch (e) {
+        console.warn('Could not fetch current member via t.member:', e);
       }
-    } catch (e) {
-      console.warn('Could not fetch current member from Trello:', e);
+    }
+
+    // 2. Context fallback
+    if (typeof t.getContext === 'function') {
+      try {
+        const ctx = t.getContext();
+        if (ctx && ctx.member) {
+          const board = await t.board('id', 'name', 'members');
+          const matched = board?.members?.find(bm => bm.id === ctx.member);
+          if (matched) {
+            return {
+              id: matched.id,
+              name: matched.fullName || matched.username || 'Current User',
+              username: matched.username ? `@${matched.username}` : '',
+              initials: matched.initials || getInitials(matched.fullName || matched.username),
+              avatar: matched.avatar || null,
+              avatarColor: getAvatarColor(matched.id || matched.fullName)
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('Could not fetch member via context:', e);
+      }
     }
   }
 

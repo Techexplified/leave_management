@@ -6,7 +6,7 @@ import ManagerReviewView from './components/ManagerReviewView';
 import TeamRosterView from './components/TeamRosterView';
 import BoardBadgesPreview from './components/BoardBadgesPreview';
 import { DEFAULT_STANDALONE_MEMBERS } from './data/mockData';
-import { getLeaveRecords, addLeaveRecord, updateLeaveStatus } from './services/leaveStorage';
+import { getLeaveRecords, addLeaveRecord, updateLeaveStatus, deleteLeaveRecord } from './services/leaveStorage';
 import { getTrelloContext, autoSize, isInsideTrello, getBoardMembers, getCurrentTrelloMember, getBoardName } from './trelloPowerUp';
 
 export default function App() {
@@ -93,6 +93,16 @@ export default function App() {
     }
   };
 
+  // Handle deleting a leave record
+  const handleDeleteLeave = async (recordId) => {
+    try {
+      const updated = await deleteLeaveRecord(tContext, recordId);
+      setRecords(updated);
+    } catch (err) {
+      console.error('Failed to delete leave:', err);
+    }
+  };
+
   // STRICT RULE: Pending count for Approvals tab:
   // ONLY requests sent to the active user AND NOT created by the active user!
   const pendingCount = records.filter(
@@ -119,8 +129,6 @@ export default function App() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           currentUser={currentUser}
-          setCurrentUser={setCurrentUser}
-          boardMembers={boardMembers}
           pendingCount={pendingCount}
         />
 
@@ -130,6 +138,7 @@ export default function App() {
               currentUser={currentUser}
               records={records}
               onRequestLeave={() => setIsModalOpen(true)}
+              onDeleteLeave={handleDeleteLeave}
             />
           )}
 

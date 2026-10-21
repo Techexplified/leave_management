@@ -1,30 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Calendar, CheckCircle2, Users, ShieldAlert, LayoutGrid, ChevronDown, Check } from 'lucide-react';
-import { isInsideTrello } from '../trelloPowerUp';
+import React from 'react';
+import { Calendar, CheckCircle2, Users, ShieldAlert, LayoutGrid } from 'lucide-react';
 
 export default function Header({
   activeTab,
   setActiveTab,
   currentUser,
-  setCurrentUser,
-  boardMembers,
   pendingCount
 }) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
-  const inTrello = isInsideTrello();
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-2xs">
       <div className="max-w-6xl mx-auto px-3 sm:px-5">
@@ -95,76 +77,18 @@ export default function Header({
             </button>
           </nav>
 
-          {/* Active User Badge (Locked to logged-in Trello user inside Trello) */}
-          <div className="relative shrink-0" ref={dropdownRef}>
-            {inTrello ? (
-              /* Inside Trello: Strictly locked to the logged-in Trello user, no switching allowed */
-              <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-medium text-slate-800 shadow-2xs">
-                {currentUser.avatar ? (
-                  <img src={currentUser.avatar} alt="" className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover shrink-0" />
-                ) : (
-                  <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full ${currentUser.avatarColor || 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[9px] sm:text-[10px] shrink-0`}>
-                    {currentUser.initials}
-                  </div>
-                )}
-                <span className="font-semibold text-slate-900 truncate max-w-[120px]">
-                  {currentUser.name}
-                </span>
-              </div>
+          {/* Active User Badge - Non-clickable, strictly locked to authenticated user */}
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-medium text-slate-800 shadow-2xs shrink-0 select-none">
+            {currentUser.avatar ? (
+              <img src={currentUser.avatar} alt="" className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover shrink-0" />
             ) : (
-              /* Outside Trello (Standalone Demo): Allow switching personas for local testing */
-              <>
-                <button
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-1.5 sm:gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-2 py-1 text-xs font-medium text-slate-800 transition-colors shadow-2xs cursor-pointer"
-                >
-                  {currentUser.avatar ? (
-                    <img src={currentUser.avatar} alt="" className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover shrink-0" />
-                  ) : (
-                    <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full ${currentUser.avatarColor || 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[9px] sm:text-[10px] shrink-0`}>
-                      {currentUser.initials}
-                    </div>
-                  )}
-                  <span className="hidden sm:inline font-semibold text-slate-900 truncate max-w-[110px]">
-                    {currentUser.name}
-                  </span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
-                </button>
-
-                {dropdownOpen && (
-                  <div className="absolute right-0 mt-1.5 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                    <div className="px-3 py-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Switch Local Test Member
-                    </div>
-                    <div className="max-h-64 overflow-y-auto py-1">
-                      {boardMembers.map((member) => {
-                        const isSelected = member.id === currentUser.id;
-                        return (
-                          <button
-                            key={member.id}
-                            onClick={() => {
-                              setCurrentUser(member);
-                              setDropdownOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left transition-colors cursor-pointer ${
-                              isSelected ? 'bg-emerald-50 text-emerald-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className={`w-5 h-5 rounded-full ${member.avatarColor || 'bg-emerald-600'} text-white font-bold text-[9px] flex items-center justify-center shrink-0`}>
-                                {member.initials}
-                              </div>
-                              <div className="truncate font-semibold text-slate-900">{member.name}</div>
-                            </div>
-                            {isSelected && <Check className="w-3 h-3 text-emerald-600 shrink-0 ml-1.5" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </>
+              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full ${currentUser.avatarColor || 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[9px] sm:text-[10px] shrink-0`}>
+                {currentUser.initials}
+              </div>
             )}
+            <span className="font-semibold text-slate-900 truncate max-w-[120px]">
+              {currentUser.name}
+            </span>
           </div>
         </div>
       </div>
