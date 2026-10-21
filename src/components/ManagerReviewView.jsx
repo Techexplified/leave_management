@@ -1,24 +1,17 @@
 import React, { useState } from 'react';
-import { Check, X, MessageSquare, AlertCircle, CheckCircle2, ArrowRightLeft } from 'lucide-react';
-import { TEAM_MEMBERS } from '../data/mockData';
+import { Check, X, MessageSquare, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function ManagerReviewView({
   currentUser,
-  setCurrentUser,
   records,
   onUpdateStatus
 }) {
   const [filterTab, setFilterTab] = useState('pending'); // 'pending' | 'all' | 'reviewed'
-  const [discussionModal, setDiscussionModal] = useState(null); // record
+  const [discussionModal, setDiscussionModal] = useState(null);
   const [discussionNote, setDiscussionNote] = useState('');
 
-  // Check if current user is an approver or manager
-  const isManager = currentUser.isManager;
-
-  // Filter requests where current user is tagged or if current user is board admin
-  const assignedRecords = records.filter(r => {
-    return r.taggedApprovers?.includes(currentUser.id) || isManager;
-  });
+  // STRICT RULE: Only show requests that were explicitly sent to the current user!
+  const assignedRecords = records.filter(r => r.taggedApprovers?.includes(currentUser.id));
 
   const pendingRecords = assignedRecords.filter(r => r.status === 'Pending' || r.status === 'Discussion');
   const reviewedRecords = assignedRecords.filter(r => r.status === 'Approved' || r.status === 'Rejected');
@@ -30,15 +23,12 @@ export default function ManagerReviewView({
     displayedRecords = reviewedRecords;
   }
 
-  // Find alternative manager to switch to
-  const otherManager = TEAM_MEMBERS.find(m => m.isManager && m.id !== currentUser.id) || TEAM_MEMBERS[1];
-
   const handleApprove = (record) => {
-    onUpdateStatus(record.id, 'Approved', currentUser, 'Approved for sprint schedule.');
+    onUpdateStatus(record.id, 'Approved', currentUser, 'Approved.');
   };
 
   const handleReject = (record) => {
-    const reason = prompt('Please enter the reason for rejection:', 'Team coverage conflict during critical sprint milestone');
+    const reason = prompt('Please enter the reason for rejection:', 'Coverage conflict during this period');
     if (reason !== null) {
       onUpdateStatus(record.id, 'Rejected', currentUser, reason);
     }
@@ -52,13 +42,13 @@ export default function ManagerReviewView({
   const handleSubmitDiscussion = (e) => {
     e.preventDefault();
     if (!discussionModal) return;
-    onUpdateStatus(discussionModal.id, 'Discussion', currentUser, discussionNote || 'Need sync regarding project handover before sign-off.');
+    onUpdateStatus(discussionModal.id, 'Discussion', currentUser, discussionNote || 'Need sync regarding coverage before approval.');
     setDiscussionModal(null);
   };
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-4">
-      {/* Top Header matching Image 3 */}
+      {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5">
@@ -70,11 +60,11 @@ export default function ManagerReviewView({
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Review and approve leave requests where you are tagged as a board reviewer or manager.
+            Review requests sent specifically to you for approval.
           </p>
         </div>
 
-        {/* Filter Tabs matching Image 3 */}
+        {/* Filter Tabs */}
         <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200/90 text-xs font-semibold self-start sm:self-auto shrink-0">
           <button
             onClick={() => setFilterTab('pending')}
@@ -109,26 +99,19 @@ export default function ManagerReviewView({
         </div>
       </div>
 
-      {/* Reviewer Banner matching Image 3 */}
-      <div className="bg-blue-50/70 border border-blue-200/80 rounded-xl px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-blue-900 shadow-2xs">
+      {/* Active Approver Banner */}
+      <div className="bg-blue-50/70 border border-blue-200/80 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2.5 text-xs text-blue-900 shadow-2xs">
         <div className="flex items-center gap-2">
-          <div className={`w-5 h-5 rounded-full ${currentUser.avatarColor || 'bg-blue-600'} text-white font-bold flex items-center justify-center text-[9px]`}>
-            {currentUser.initials}
-          </div>
+          {currentUser.avatar ? (
+            <img src={currentUser.avatar} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+          ) : (
+            <div className={`w-5 h-5 rounded-full ${currentUser.avatarColor || 'bg-blue-600'} text-white font-bold flex items-center justify-center text-[9px] shrink-0`}>
+              {currentUser.initials}
+            </div>
+          )}
           <div>
-            You are reviewing as <strong className="font-bold text-blue-950">{currentUser.name}</strong> ({currentUser.role}).
+            Viewing approvals assigned to <strong className="font-bold text-blue-950">{currentUser.name}</strong>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-blue-700 text-[11px]">Want to test as a different manager?</span>
-          <button
-            onClick={() => setCurrentUser(otherManager)}
-            className="bg-white hover:bg-blue-100/70 text-blue-900 border border-blue-300 px-2 py-0.5 rounded-md font-medium text-[11px] transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
-          >
-            <ArrowRightLeft className="w-3 h-3" />
-            Switch to {otherManager.name.split(' ')[0]}
-          </button>
         </div>
       </div>
 
@@ -139,7 +122,7 @@ export default function ManagerReviewView({
           <h3 className="text-sm font-bold text-slate-900 mb-1">Queue is clear!</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
             {filterTab === 'pending'
-              ? 'No leave requests currently awaiting your action.'
+              ? 'No leave requests have been assigned to you for approval.'
               : 'No records found matching the selected filter.'}
           </p>
         </div>
@@ -158,17 +141,19 @@ export default function ManagerReviewView({
                 {/* Header row: Requester info + Dates + Status badge */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-full ${req.requesterColor || 'bg-blue-600'} text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs`}>
-                      {req.requesterInitials}
-                    </div>
+                    {req.requesterAvatar ? (
+                      <img src={req.requesterAvatar} alt="" className="w-9 h-9 rounded-full object-cover shrink-0 shadow-2xs" />
+                    ) : (
+                      <div className={`w-9 h-9 rounded-full ${req.requesterColor || 'bg-blue-600'} text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs`}>
+                        {req.requesterInitials}
+                      </div>
+                    )}
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm sm:text-base font-bold text-slate-900">{req.requesterName}</span>
-                        <span className="text-slate-300">·</span>
-                        <span className="text-xs text-slate-600">{req.requesterRole}</span>
-                        <span className="bg-slate-100 text-slate-700 text-[10px] font-medium px-2 py-0.5 rounded">
-                          {req.requesterDept}
-                        </span>
+                        {req.requesterUsername && (
+                          <span className="text-xs text-slate-500">{req.requesterUsername}</span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -179,18 +164,18 @@ export default function ManagerReviewView({
                           {req.startDate} – {req.endDate}
                         </span>
                         <span className="text-[11px] text-slate-500">
-                          ({req.businessDays} business days) · {req.relativeNotice}
+                          ({req.businessDays} business days)
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Status badge on right */}
+                  {/* Status badge */}
                   <div className="self-start lg:self-auto shrink-0">
                     {isPending && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300">
                         <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                        {req.status === 'Discussion' ? 'Discussion Requested' : 'Awaiting Review'}
+                        {req.status === 'Discussion' ? 'Discussion Requested' : 'Awaiting Your Review'}
                       </span>
                     )}
                     {isApproved && (
@@ -208,7 +193,7 @@ export default function ManagerReviewView({
                   </div>
                 </div>
 
-                {/* Reason container matching Image 3 */}
+                {/* Reason */}
                 <div className="bg-slate-50/90 border border-slate-100 rounded-lg p-3 text-xs sm:text-sm text-slate-700 leading-relaxed">
                   <span className="font-semibold text-slate-900">Reason: </span>
                   {req.reason}
@@ -217,53 +202,35 @@ export default function ManagerReviewView({
                 {/* Coverage note */}
                 {req.coverageNotes && (
                   <div className="text-xs text-slate-600 bg-emerald-50/40 border border-emerald-100 rounded-lg px-3 py-2">
-                    <strong className="text-emerald-900">Handover / Coverage: </strong>
+                    <strong className="text-emerald-900">Coverage Handover: </strong>
                     {req.coverageNotes}
                   </div>
                 )}
 
-                {/* Attached Boards & Sign-offs */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-2 border-t border-slate-100">
-                  <div>
+                {/* Sign-offs timeline */}
+                {req.signOffs && req.signOffs.length > 0 && (
+                  <div className="text-xs pt-2 border-t border-slate-100">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                      ATTACHED TRELLO BOARDS
+                      SIGN-OFF HISTORY
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {req.attachedBoards?.map((b, i) => (
-                        <span key={i} className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 px-2 py-0.5 rounded text-[11px] border border-blue-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                          {b}
-                        </span>
+                    <div className="space-y-1">
+                      {req.signOffs.map((s, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 text-slate-700 text-[11px]">
+                          <span className="font-medium">{s.approverName}</span>
+                          <span className="text-slate-300">•</span>
+                          <span className={`font-semibold ${
+                            s.decision === 'Approved' ? 'text-emerald-600' :
+                            s.decision === 'Rejected' ? 'text-rose-600' : 'text-blue-600'
+                          }`}>{s.decision}</span>
+                          <span className="text-slate-400">({s.date})</span>
+                          {s.note && <span className="text-slate-500 italic">"{s.note}"</span>}
+                        </div>
                       ))}
                     </div>
                   </div>
+                )}
 
-                  <div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                      REVIEWER SIGN-OFFS
-                    </div>
-                    {req.signOffs && req.signOffs.length > 0 ? (
-                      <div className="space-y-1">
-                        {req.signOffs.map((s, idx) => (
-                          <div key={idx} className="flex items-center gap-1.5 text-slate-700 text-[11px]">
-                            <span className="font-medium">{s.approverName}</span>
-                            <span className="text-slate-300">•</span>
-                            <span className={`font-semibold ${
-                              s.decision === 'Approved' ? 'text-emerald-600' :
-                              s.decision === 'Rejected' ? 'text-rose-600' : 'text-blue-600'
-                            }`}>{s.decision}</span>
-                            <span className="text-slate-400">({s.date})</span>
-                            {s.note && <span className="text-slate-500 italic">"{s.note}"</span>}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 italic text-[11px]">No reviewers signed off yet</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Action Buttons matching Image 3 */}
+                {/* Action Buttons: ONLY the tagged approver can click */}
                 {isPending && (
                   <div className="pt-2 flex items-center justify-end gap-2">
                     <button
@@ -303,13 +270,13 @@ export default function ManagerReviewView({
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-3">
             <h3 className="text-sm font-bold text-slate-900">Request Discussion with {discussionModal.requesterName}</h3>
             <p className="text-xs text-slate-500">
-              Provide questions or points to clarify before signing off on this leave request.
+              Provide questions or points to clarify before approving this leave request.
             </p>
             <textarea
               rows={3}
               value={discussionNote}
               onChange={(e) => setDiscussionNote(e.target.value)}
-              placeholder="e.g. Can we ensure the API release is tagged before you log off on Oct 19?"
+              placeholder="e.g. Can you confirm task handover before this date?"
               className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             />
             <div className="flex justify-end gap-2 pt-1">

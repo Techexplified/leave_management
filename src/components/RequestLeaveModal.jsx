@@ -1,40 +1,65 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, AlertTriangle, Check, UserCheck, ShieldCheck } from 'lucide-react';
-import { TEAM_MEMBERS, LEAVE_CATEGORIES, BOARDS, calculateBusinessDays } from '../data/mockData';
+import { X, Calendar, AlertTriangle, Check, UserCheck } from 'lucide-react';
+import { LEAVE_CATEGORIES, calculateBusinessDays } from '../data/mockData';
 
 export default function RequestLeaveModal({
   isOpen,
   onClose,
   currentUser,
+  boardMembers,
+  boardName,
   onSubmitLeave,
   existingRecords
 }) {
   const [category, setCategory] = useState(LEAVE_CATEGORIES[0]);
-  const [startDate, setStartDate] = useState('2026-10-26');
-  const [endDate, setEndDate] = useState('2026-10-30');
-  const [businessDays, setBusinessDays] = useState(5);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [businessDays, setBusinessDays] = useState(0);
   const [reason, setReason] = useState('');
   const [coverageNotes, setCoverageNotes] = useState('');
-  const [selectedApprovers, setSelectedApprovers] = useState(['mem_mc']);
-  const [attachedBoard, setAttachedBoard] = useState(BOARDS[0]);
-  const [departmentClash, setDepartmentClash] = useState(null);
+  const [selectedApprovers, setSelectedApprovers] = useState([]);
+  const [overlapWarning, setOverlapWarning] = useState(null);
 
-  // Recalculate business days when dates change
+  // Set default dates to upcoming Monday-Friday
+  useEffect(() => {
+    if (isOpen && !startDate) {
+      const today = new Date();
+      const nextMon = new Date(today);
+      nextMon.setDate(today.getDate() + ((1 + 7 - today.getDay()) % 7 || 7));
+      const nextFri = new Date(nextMon);
+      nextFri.setDate(nextMon.getDate() + 4);
+
+      const sStr = nextMon.toISOString().slice(0, 10);
+      const eStr = nextFri.toISOString().slice(0, 10);
+      setStartDate(sStr);
+      setEndDate(eStr);
+    }
+  }, [isOpen]);
+
+  // Recalculate business days and check for overlapping team leaves
   useEffect(() => {
     if (startDate && endDate) {
       const days = calculateBusinessDays(startDate, endDate);
       setBusinessDays(days);
 
-      // Check for department leave clash
-      const clash = existingRecords.find(r =>
+      const overlap = existingRecords.find(r =>
         r.status === 'Approved' &&
-        r.requesterDept === currentUser.department &&
         r.requesterId !== currentUser.id &&
         ((r.startDate <= endDate && r.endDate >= startDate))
       );
-      setDepartmentClash(clash || null);
+      setOverlapWarning(overlap || null);
     }
   }, [startDate, endDate, existingRecords, currentUser]);
+
+  // Candidate approvers: other real members of this Trello board
+  const candidateApprovers = boardMembers.filter(m => m.id !== currentUser.id);
+
+  // Auto-select first available approver if none selected
+  useEffect(() => {
+    if (candidateApprovers.length > 0 && selectedApprovers.length === 0) {
+      setSelectedApprovers([candidateApprovers[0].id]);
+    }
+  }, [candidateApprovers]);
 
   if (!isOpen) return null;
 
@@ -56,8 +81,8 @@ export default function RequestLeaveModal({
       alert('Please provide a reason for the leave.');
       return;
     }
-    if (selectedApprovers.length === 0) {
-      alert('Please select at least 1 board member for approval.');
+    if (selectedApprovers.length === 0 && candidateApprovers.length > 0) {
+      alert('Please select at least 1 board member to approve your leave.');
       return;
     }
 
@@ -65,19 +90,18 @@ export default function RequestLeaveModal({
       id: 'leave_' + Date.now(),
       requesterId: currentUser.id,
       requesterName: currentUser.name,
-      requesterRole: currentUser.role,
-      requesterDept: currentUser.department,
+      requesterUsername: currentUser.username,
+      requesterAvatar: currentUser.avatar,
       requesterInitials: currentUser.initials,
       requesterColor: currentUser.avatarColor,
       category,
       startDate,
       endDate,
       businessDays,
-      relativeNotice: 'Upcoming',
       reason,
-      coverageNotes: coverageNotes.trim() || 'Colleagues on-call for urgent items.',
-      attachedBoards: [attachedBoard],
-      taggedApprovers: selectedApprovers,
+      coverageNotes: coverageNotes.trim(),
+      attachedBoards: [boardName || 'Trello Board'],
+      taggedApprovers: selectedApprovers.length > 0 ? selectedApprovers : [currentUser.id],
       status: 'Pending',
       statusNote: 'Awaiting Review',
       submittedAt: new Date().toISOString(),
@@ -88,50 +112,47 @@ export default function RequestLeaveModal({
     onClose();
   };
 
-  // Candidates for approvers (other board members)
-  const candidateApprovers = TEAM_MEMBERS.filter(m => m.id !== currentUser.id);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full border border-slate-200 overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150">
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
+        <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+            <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
               <Calendar className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900 leading-tight">Request Leave & Time-Off</h2>
-              <p className="text-xs text-slate-500">Submit a scheduled absence for board approval</p>
+              <h2 className="text-base font-bold text-slate-900 leading-tight">Request Leave & Time-Off</h2>
+              <p className="text-[11px] text-slate-500">Submit a scheduled absence for approval</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200/50 transition-colors cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200/50 transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Modal Body Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        {/* Modal Form */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs">
           {/* Leave Category Selector */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
               Leave Category *
             </label>
             <div className="relative">
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-white border border-slate-300 text-slate-800 text-sm font-medium rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-xs appearance-none cursor-pointer"
+                className="w-full bg-white border border-slate-300 text-slate-800 text-xs font-medium rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs appearance-none cursor-pointer"
               >
                 {LEAVE_CATEGORIES.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
@@ -139,53 +160,49 @@ export default function RequestLeaveModal({
           </div>
 
           {/* Date Range Picker */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Date From <span className="text-rose-500">*</span>
               </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-white border border-slate-300 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-xs cursor-pointer"
-                  required
-                />
-              </div>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs cursor-pointer"
+                required
+              />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Date To <span className="text-rose-500">*</span>
               </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  min={startDate}
-                  className="w-full bg-white border border-slate-300 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-xs cursor-pointer"
-                  required
-                />
-              </div>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                min={startDate}
+                className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs cursor-pointer"
+                required
+              />
             </div>
           </div>
 
-          {/* Calculated Business Days Box matching Image 5 */}
-          <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl px-4 py-3 flex items-center justify-between">
+          {/* Calculated Business Days Box */}
+          <div className="bg-slate-50/80 border border-slate-200/90 rounded-xl px-3.5 py-2.5 flex items-center justify-between">
             <span className="text-xs font-medium text-slate-600">Calculated Business Days:</span>
-            <span className="font-mono font-bold text-slate-900 text-sm tracking-wide">
+            <span className="font-mono font-bold text-slate-900 text-xs tracking-wide">
               {businessDays} working {businessDays === 1 ? 'day' : 'days'}
             </span>
           </div>
 
-          {/* Department Clash Warning if detected */}
-          {departmentClash && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2.5 text-xs text-amber-800">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          {/* Overlap Warning if detected */}
+          {overlapWarning && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 flex items-start gap-2 text-[11px] text-amber-800">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
               <div>
-                <strong className="font-semibold">Team Coverage Note:</strong> {departmentClash.requesterName} from your department ({currentUser.department}) also has an approved leave from {departmentClash.startDate} to {departmentClash.endDate}. Please coordinate coverage notes.
+                <strong className="font-semibold">Team Coverage Note:</strong> {overlapWarning.requesterName} is also scheduled on leave from {overlapWarning.startDate} to {overlapWarning.endDate}.
               </div>
             </div>
           )}
@@ -196,11 +213,11 @@ export default function RequestLeaveModal({
               Reason for Leave <span className="text-rose-500">*</span>
             </label>
             <textarea
-              rows={3}
+              rows={2}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Provide context for your team lead and board members (e.g., Annual family travel, scheduled dentist appointment, personal recharge)..."
-              className="w-full bg-white border border-slate-300 text-slate-800 text-sm rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-xs resize-none"
+              placeholder="Provide context for your absence..."
+              className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs resize-none"
               required
             />
           </div>
@@ -208,87 +225,92 @@ export default function RequestLeaveModal({
           {/* Coverage Handover Plan */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Coverage & Handover Plan <span className="text-slate-400 font-normal">(Optional)</span>
+              Coverage / Handover Note <span className="text-slate-400 font-normal">(Optional)</span>
             </label>
             <input
               type="text"
               value={coverageNotes}
               onChange={(e) => setCoverageNotes(e.target.value)}
-              placeholder="e.g. Alex Rivera covers design reviews; Marcus Chen handles engineering queries."
-              className="w-full bg-white border border-slate-300 text-slate-800 text-sm rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-xs"
+              placeholder="e.g. Tasks covered by colleagues on this board"
+              className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs"
             />
           </div>
 
-          {/* Tag Board Members for Approval matching Image 5 */}
+          {/* Tag Board Members for Approval (Dynamically from Board) */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-semibold text-slate-700">
-                Tag Board Members for Approval <span className="text-rose-500">*</span>
+                Send Request to Approver <span className="text-rose-500">*</span>
               </label>
-              <span className="text-xs font-medium text-slate-500">
-                {selectedApprovers.length} tagged
+              <span className="text-[11px] font-medium text-slate-500">
+                {selectedApprovers.length} selected
               </span>
             </div>
-            <p className="text-xs text-slate-500 mb-2.5">
-              Tagged members will receive this request in their Review Requests tab to approve, reject, or request discussion.
+            <p className="text-[11px] text-slate-500 mb-2">
+              Only the person selected below will receive this leave request and be able to approve it.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-48 overflow-y-auto p-1 border border-slate-200 rounded-xl bg-slate-50/40">
-              {candidateApprovers.map((member) => {
-                const isSelected = selectedApprovers.includes(member.id);
-                return (
-                  <div
-                    key={member.id}
-                    onClick={() => toggleApprover(member.id)}
-                    className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
-                      isSelected
-                        ? 'bg-emerald-50/80 border-emerald-300 shadow-xs'
-                        : 'bg-white border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className={`w-7 h-7 rounded-full ${member.avatarColor} text-white font-bold flex items-center justify-center text-[10px] shrink-0`}>
-                        {member.initials}
-                      </div>
-                      <div className="truncate">
-                        <div className="font-semibold text-slate-900 truncate flex items-center gap-1">
-                          {member.name}
-                          {member.isManager && (
-                            <ShieldCheck className="w-3 h-3 text-emerald-600 inline shrink-0" />
-                          )}
+            {candidateApprovers.length === 0 ? (
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-500 text-[11px] text-center">
+                You are currently the only member on this board.
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto p-1 border border-slate-200 rounded-xl bg-slate-50/40">
+                {candidateApprovers.map((member) => {
+                  const isSelected = selectedApprovers.includes(member.id);
+                  return (
+                    <div
+                      key={member.id}
+                      onClick={() => toggleApprover(member.id)}
+                      className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-all ${
+                        isSelected
+                          ? 'bg-emerald-50/90 border-emerald-300 shadow-2xs'
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {member.avatar ? (
+                          <img src={member.avatar} alt="" className="w-6 h-6 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className={`w-6 h-6 rounded-full ${member.avatarColor || 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[9px] shrink-0`}>
+                            {member.initials}
+                          </div>
+                        )}
+                        <div className="truncate">
+                          <div className="font-semibold text-slate-900 truncate">{member.name}</div>
+                          {member.username && <div className="text-[10px] text-slate-400 truncate">{member.username}</div>}
                         </div>
-                        <div className="text-[11px] text-slate-500 truncate">{member.role}</div>
+                      </div>
+
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ml-2 transition-colors ${
+                        isSelected
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'border-slate-300 bg-white'
+                      }`}>
+                        {isSelected && <Check className="w-3 h-3 stroke-3" />}
                       </div>
                     </div>
-
-                    <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ml-2 transition-colors ${
-                      isSelected
-                        ? 'bg-emerald-600 border-emerald-600 text-white'
-                        : 'border-slate-300 bg-white'
-                    }`}>
-                      {isSelected && <Check className="w-3 h-3 stroke-3" />}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Modal Actions */}
-          <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
+          <div className="pt-2 border-t border-slate-200 flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-medium transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer flex items-center gap-1.5"
             >
-              <Check className="w-4 h-4" />
-              Submit Request
+              <Check className="w-3.5 h-3.5" />
+              <span>Send Request</span>
             </button>
           </div>
         </form>

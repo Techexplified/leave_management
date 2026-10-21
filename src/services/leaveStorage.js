@@ -1,13 +1,11 @@
-import { INITIAL_LEAVE_RECORDS } from '../data/mockData';
-
-const STORAGE_KEY = 'trello_leave_records_v1';
+const STORAGE_KEY = 'trello_leave_records_v2';
 
 export async function getLeaveRecords(t) {
-  // If in Trello iframe, try board shared storage
+  // If in Trello iframe, read board shared storage
   if (t && typeof t.get === 'function') {
     try {
       const records = await t.get('board', 'shared', 'leave_records');
-      if (Array.isArray(records) && records.length > 0) {
+      if (Array.isArray(records)) {
         return records;
       }
     } catch (err) {
@@ -18,9 +16,9 @@ export async function getLeaveRecords(t) {
   // Fallback to localStorage
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
+    if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
@@ -28,11 +26,7 @@ export async function getLeaveRecords(t) {
     console.warn('LocalStorage error:', err);
   }
 
-  // Seed default data matching screenshots
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_LEAVE_RECORDS));
-  } catch {}
-  return [...INITIAL_LEAVE_RECORDS];
+  return [];
 }
 
 export async function saveLeaveRecords(t, records) {
@@ -43,7 +37,7 @@ export async function saveLeaveRecords(t, records) {
     console.error('Failed to save to localStorage:', err);
   }
 
-  // Save to Trello board storage if available
+  // Save to Trello board shared storage so all board members see it
   if (t && typeof t.set === 'function') {
     try {
       await t.set('board', 'shared', 'leave_records', records);
@@ -67,8 +61,8 @@ export async function updateLeaveStatus(t, recordId, status, approver, note = ''
   const updated = current.map(item => {
     if (item.id === recordId) {
       const newSignOff = {
+        approverId: approver.id,
         approverName: approver.name,
-        approverRole: approver.role,
         decision: status,
         date: new Date().toISOString().slice(0, 10),
         note: note
@@ -80,7 +74,7 @@ export async function updateLeaveStatus(t, recordId, status, approver, note = ''
         statusNote: status === 'Approved' ? `Approved by ${approver.name}` :
                     status === 'Rejected' ? `Rejected by ${approver.name}` :
                     `Discussion requested by ${approver.name}`,
-        signOffs: [...existingSignOffs.filter(s => s.approverName !== approver.name), newSignOff]
+        signOffs: [...existingSignOffs.filter(s => s.approverId !== approver.id), newSignOff]
       };
     }
     return item;
@@ -88,9 +82,4 @@ export async function updateLeaveStatus(t, recordId, status, approver, note = ''
 
   await saveLeaveRecords(t, updated);
   return updated;
-}
-
-export async function resetDemoData(t) {
-  await saveLeaveRecords(t, INITIAL_LEAVE_RECORDS);
-  return [...INITIAL_LEAVE_RECORDS];
 }

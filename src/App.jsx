@@ -5,53 +5,66 @@ import RequestLeaveModal from './components/RequestLeaveModal';
 import ManagerReviewView from './components/ManagerReviewView';
 import TeamRosterView from './components/TeamRosterView';
 import BoardBadgesPreview from './components/BoardBadgesPreview';
-import { TEAM_MEMBERS } from './data/mockData';
-import { getLeaveRecords, addLeaveRecord, updateLeaveStatus, resetDemoData } from './services/leaveStorage';
-import { getTrelloContext, autoSize, isInsideTrello } from './trelloPowerUp';
-import { RotateCcw } from 'lucide-react';
+import { DEFAULT_STANDALONE_MEMBERS } from './data/mockData';
+import { getLeaveRecords, addLeaveRecord, updateLeaveStatus } from './services/leaveStorage';
+import { getTrelloContext, autoSize, isInsideTrello, getBoardMembers, getCurrentTrelloMember, getBoardName } from './trelloPowerUp';
 
 export default function App() {
   const [tContext, setTContext] = useState(null);
-  const [currentUser, setCurrentUser] = useState(TEAM_MEMBERS[0]); // Default: Marcus Chen
+  const [boardMembers, setBoardMembers] = useState(DEFAULT_STANDALONE_MEMBERS);
+  const [currentUser, setCurrentUser] = useState(DEFAULT_STANDALONE_MEMBERS[0]);
+  const [boardName, setBoardName] = useState('Trello Board');
   const [activeTab, setActiveTab] = useState('employee'); // 'employee' | 'manager' | 'roster' | 'board'
   const [records, setRecords] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const inTrello = isInsideTrello();
 
-  // Initialize Trello Power-Up context and load records
+  // Initialize Trello Power-Up context and load real board data
   useEffect(() => {
-    const t = getTrelloContext();
-    if (t) {
-      setTContext(t);
-      autoSize(t);
+    async function init() {
+      const t = getTrelloContext();
+      if (t) {
+        setTContext(t);
+        autoSize(t);
 
-      // Attempt to identify logged-in Trello member
-      if (typeof t.member === 'function') {
-        t.member('id', 'fullName')
-          .then((member) => {
-            if (member && member.fullName) {
-              const matched = TEAM_MEMBERS.find(m =>
-                m.name.toLowerCase().includes(member.fullName.toLowerCase()) ||
-                member.fullName.toLowerCase().includes(m.name.toLowerCase())
-              );
-              if (matched) setCurrentUser(matched);
-            }
-          })
-          .catch(() => {});
+        try {
+          // 1. Fetch real members of this Trello board
+          const members = await getBoardMembers(t);
+          if (members && members.length > 0) {
+            setBoardMembers(members);
+          }
+
+          // 2. Fetch the currently logged-in Trello user
+          const me = await getCurrentTrelloMember(t);
+          if (me) {
+            // Match with board member if possible or use current user info
+            const matched = members.find(m => m.id === me.id);
+            setCurrentUser(matched || me);
+          } else if (members.length > 0) {
+            setCurrentUser(members[0]);
+          }
+
+          // 3. Fetch board name
+          const name = await getBoardName(t);
+          setBoardName(name);
+        } catch (e) {
+          console.warn('Error fetching Trello board data:', e);
+        }
+      }
+
+      // 4. Load saved leave records from Trello board shared storage
+      try {
+        const loaded = await getLeaveRecords(t);
+        setRecords(loaded || []);
+      } catch (err) {
+        console.error('Error loading leaves:', err);
+      } finally {
+        setLoading(false);
       }
     }
 
-    // Load initial records
-    getLeaveRecords(t)
-      .then((loaded) => {
-        setRecords(loaded);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Error loading leaves:', err);
-        setLoading(false);
-      });
+    init();
   }, []);
 
   // Update Trello iframe height if resized
@@ -81,18 +94,10 @@ export default function App() {
     }
   };
 
-  // Reset demo data to screenshot match
-  const handleResetData = async () => {
-    if (confirm('Reset leaves to the default screenshot sample data?')) {
-      const reset = await resetDemoData(tContext);
-      setRecords(reset);
-    }
-  };
-
-  // Pending count for manager tab
+  // STRICT RULE: Pending count for Approvals tab: ONLY requests sent to the active user!
   const pendingCount = records.filter(
     r => (r.status === 'Pending' || r.status === 'Discussion') &&
-         (r.taggedApprovers?.includes(currentUser.id) || currentUser.isManager)
+         r.taggedApprovers?.includes(currentUser.id)
   ).length;
 
   if (loading) {
@@ -114,6 +119,7 @@ export default function App() {
           setActiveTab={setActiveTab}
           currentUser={currentUser}
           setCurrentUser={setCurrentUser}
+          boardMembers={boardMembers}
           pendingCount={pendingCount}
         />
 
@@ -129,7 +135,6 @@ export default function App() {
           {activeTab === 'manager' && (
             <ManagerReviewView
               currentUser={currentUser}
-              setCurrentUser={setCurrentUser}
               records={records}
               onUpdateStatus={handleUpdateStatus}
             />
@@ -145,30 +150,13 @@ export default function App() {
         </main>
       </div>
 
-      {/* Subtle Footer (Only outside Trello iframe) */}
-      {!inTrello && (
-        <footer className="border-t border-slate-200/80 bg-white py-3 px-6 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-600">Leave Management Power-Up</span>
-            <span>•</span>
-            <span>Standalone Demo Environment</span>
-          </div>
-
-          <button
-            onClick={handleResetData}
-            className="text-slate-400 hover:text-slate-700 flex items-center gap-1 transition-colors cursor-pointer text-xs"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Demo Data</span>
-          </button>
-        </footer>
-      )}
-
       {/* Request Leave Modal */}
       <RequestLeaveModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         currentUser={currentUser}
+        boardMembers={boardMembers}
+        boardName={boardName}
         onSubmitLeave={handleCreateLeave}
         existingRecords={records}
       />

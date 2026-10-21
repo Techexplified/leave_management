@@ -1,61 +1,4 @@
-// Initial team members and leave data matching the Power-Up screenshots
-
-export const TEAM_MEMBERS = [
-  {
-    id: 'mem_mc',
-    name: 'Marcus Chen',
-    initials: 'MC',
-    role: 'Engineering Lead & Approver',
-    department: 'Core Engineering',
-    avatarColor: 'bg-blue-600',
-    isManager: true
-  },
-  {
-    id: 'mem_sj',
-    name: 'Sarah Jenkins',
-    initials: 'SJ',
-    role: 'VP Operations',
-    department: 'Operations & Strategy',
-    avatarColor: 'bg-purple-600',
-    isManager: true
-  },
-  {
-    id: 'mem_dk',
-    name: 'David Kim',
-    initials: 'DK',
-    role: 'Senior Full-Stack Engineer',
-    department: 'Core Engineering',
-    avatarColor: 'bg-blue-500',
-    isManager: false
-  },
-  {
-    id: 'mem_ev',
-    name: 'Elena Vance',
-    initials: 'EV',
-    role: 'Staff Product Manager',
-    department: 'Product & Growth',
-    avatarColor: 'bg-emerald-600',
-    isManager: false
-  },
-  {
-    id: 'mem_pp',
-    name: 'Priya Patel',
-    initials: 'PP',
-    role: 'DevOps & Reliability Lead',
-    department: 'Infrastructure',
-    avatarColor: 'bg-rose-600',
-    isManager: false
-  },
-  {
-    id: 'mem_ar',
-    name: 'Alex Rivera',
-    initials: 'AR',
-    role: 'Lead UX Designer',
-    department: 'Product Design',
-    avatarColor: 'bg-amber-600',
-    isManager: false
-  }
-];
+// Leave management categories and helper functions
 
 export const LEAVE_CATEGORIES = [
   'Annual Vacation (PTO)',
@@ -66,82 +9,56 @@ export const LEAVE_CATEGORIES = [
   'Compensatory Off'
 ];
 
-export const BOARDS = [
-  'Sprint 42 — Platform & Engine',
-  'Product Roadmap 2026 Strategic Initiatives',
-  'Infrastructure Core & Security'
+// Helper to compute initials from a full name
+export function getInitials(name) {
+  if (!name) return '??';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+const AVATAR_COLORS = [
+  'bg-blue-600',
+  'bg-emerald-600',
+  'bg-purple-600',
+  'bg-amber-600',
+  'bg-rose-600',
+  'bg-indigo-600',
+  'bg-teal-600',
+  'bg-sky-600'
 ];
 
-export const INITIAL_LEAVE_RECORDS = [
+// Deterministic avatar color based on user ID or name
+export function getAvatarColor(idOrName = '') {
+  let hash = 0;
+  for (let i = 0; i < idOrName.length; i++) {
+    hash = idOrName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+// Fallback members ONLY when running outside Trello in standalone mode (no designations)
+export const DEFAULT_STANDALONE_MEMBERS = [
   {
-    id: 'leave_dk_1',
-    requesterId: 'mem_dk',
-    requesterName: 'David Kim',
-    requesterRole: 'Senior Full-Stack Engineer',
-    requesterDept: 'Core Engineering',
-    requesterInitials: 'DK',
-    requesterColor: 'bg-blue-500',
-    category: 'Personal / Family Care',
-    startDate: '2026-10-19',
-    endDate: '2026-10-21',
-    businessDays: 3,
-    relativeNotice: 'In 12 days',
-    reason: 'Attending family celebration and medical checkup appointment in hometown.',
-    coverageNotes: 'Sarah covers sprint coordination; Marcus takes urgent pull request approvals.',
-    attachedBoards: ['Sprint 42 — Platform & Engine'],
-    taggedApprovers: ['mem_mc', 'mem_sj'],
-    status: 'Pending', // 'Pending' | 'Approved' | 'Discussion' | 'Rejected'
-    statusNote: 'Awaiting Review',
-    submittedAt: '2026-10-10T09:30:00Z',
-    signOffs: []
+    id: 'user_1',
+    name: 'Pranjal Singh',
+    username: 'pranjalsingh',
+    initials: 'PS',
+    avatarColor: 'bg-emerald-600'
   },
   {
-    id: 'leave_ev_1',
-    requesterId: 'mem_ev',
-    requesterName: 'Elena Vance',
-    requesterRole: 'Staff Product Manager',
-    requesterDept: 'Product & Growth',
-    requesterInitials: 'EV',
-    requesterColor: 'bg-emerald-600',
-    category: 'Annual Vacation',
-    startDate: '2026-10-12',
-    endDate: '2026-10-16',
-    businessDays: 5,
-    relativeNotice: 'In 5 days',
-    reason: 'Annual recharge and family autumn trip.',
-    coverageNotes: 'Alex Rivera covers design reviews; Marcus Chen handles engineering queries.',
-    attachedBoards: ['Sprint 42 — Platform & Engine', 'Product Roadmap 2026 Strategic Initiatives'],
-    taggedApprovers: ['mem_sj'],
-    status: 'Approved',
-    statusNote: 'Approved by Sarah Jenkins',
-    submittedAt: '2026-10-01T11:00:00Z',
-    signOffs: [
-      { approverName: 'Sarah Jenkins', approverRole: 'VP Operations', decision: 'Approved', date: '2026-10-02' }
-    ]
+    id: 'user_2',
+    name: 'Alex Rivera',
+    username: 'alexrivera',
+    initials: 'AR',
+    avatarColor: 'bg-amber-600'
   },
   {
-    id: 'leave_pp_1',
-    requesterId: 'mem_pp',
-    requesterName: 'Priya Patel',
-    requesterRole: 'DevOps & Reliability Lead',
-    requesterDept: 'Infrastructure',
-    requesterInitials: 'PP',
-    requesterColor: 'bg-rose-600',
-    category: 'Remote / WFH Day',
-    startDate: '2026-10-08',
-    endDate: '2026-10-09',
-    businessDays: 2,
-    relativeNotice: 'Starts tomorrow',
-    reason: 'Home network upgrade and fiber maintenance in residential area.',
-    coverageNotes: 'On-call alerts routed to David Kim during maintenance window.',
-    attachedBoards: ['Sprint 42 — Platform & Engine'],
-    taggedApprovers: ['mem_mc'],
-    status: 'Approved',
-    statusNote: 'Approved by Marcus Chen',
-    submittedAt: '2026-10-04T14:20:00Z',
-    signOffs: [
-      { approverName: 'Marcus Chen', approverRole: 'Engineering Lead & Approver', decision: 'Approved', date: '2026-10-05' }
-    ]
+    id: 'user_3',
+    name: 'Sarah Jenkins',
+    username: 'sarahjenkins',
+    initials: 'SJ',
+    avatarColor: 'bg-purple-600'
   }
 ];
 

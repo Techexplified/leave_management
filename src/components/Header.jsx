@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, CheckCircle2, Users, ShieldAlert, LayoutGrid, ChevronDown, Check } from 'lucide-react';
-import { TEAM_MEMBERS } from '../data/mockData';
 
 export default function Header({
   activeTab,
   setActiveTab,
   currentUser,
   setCurrentUser,
+  boardMembers,
   pendingCount
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -37,7 +37,7 @@ export default function Header({
             </div>
           </div>
 
-          {/* All 4 Segmented Navigation Tabs */}
+          {/* Segmented Navigation Tabs */}
           <nav className="flex items-center bg-slate-100 p-0.5 sm:p-1 rounded-xl border border-slate-200/80 text-[11px] sm:text-xs">
             <button
               onClick={() => setActiveTab('employee')}
@@ -93,29 +93,33 @@ export default function Header({
             </button>
           </nav>
 
-          {/* Sleek Persona Switcher */}
+          {/* Active User Pill & Board Member Switcher */}
           <div className="relative shrink-0" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-1.5 sm:gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-2 py-1 text-xs font-medium text-slate-800 transition-colors shadow-2xs cursor-pointer"
             >
-              <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full ${currentUser.avatarColor || 'bg-blue-600'} text-white font-bold flex items-center justify-center text-[9px] sm:text-[10px] shrink-0`}>
-                {currentUser.initials}
-              </div>
-              <span className="hidden sm:inline font-semibold text-slate-900 truncate max-w-[90px]">
+              {currentUser.avatar ? (
+                <img src={currentUser.avatar} alt="" className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full ${currentUser.avatarColor || 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[9px] sm:text-[10px] shrink-0`}>
+                  {currentUser.initials}
+                </div>
+              )}
+              <span className="hidden sm:inline font-semibold text-slate-900 truncate max-w-[110px]">
                 {currentUser.name}
               </span>
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </button>
 
-            {/* Persona Dropdown Menu */}
+            {/* Dropdown Menu listing real Board Members */}
             {dropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-60 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-3 py-1 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Switch Active Role
+              <div className="absolute right-0 mt-1.5 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="px-3 py-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Active Board Members
                 </div>
                 <div className="max-h-64 overflow-y-auto py-1">
-                  {TEAM_MEMBERS.map((member) => {
+                  {boardMembers.map((member) => {
                     const isSelected = member.id === currentUser.id;
                     return (
                       <button
@@ -125,16 +129,20 @@ export default function Header({
                           setDropdownOpen(false);
                         }}
                         className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left transition-colors cursor-pointer ${
-                          isSelected ? 'bg-emerald-50 text-emerald-900' : 'hover:bg-slate-50 text-slate-700'
+                          isSelected ? 'bg-emerald-50 text-emerald-900 font-medium' : 'hover:bg-slate-50 text-slate-700'
                         }`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className={`w-5 h-5 rounded-full ${member.avatarColor} text-white font-bold text-[9px] flex items-center justify-center shrink-0`}>
-                            {member.initials}
-                          </div>
+                          {member.avatar ? (
+                            <img src={member.avatar} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <div className={`w-5 h-5 rounded-full ${member.avatarColor || 'bg-emerald-600'} text-white font-bold text-[9px] flex items-center justify-center shrink-0`}>
+                              {member.initials}
+                            </div>
+                          )}
                           <div className="truncate">
                             <div className="font-semibold text-slate-900 truncate">{member.name}</div>
-                            <div className="text-[10px] text-slate-500 truncate">{member.role}</div>
+                            {member.username && <div className="text-[10px] text-slate-400 truncate">{member.username}</div>}
                           </div>
                         </div>
                         {isSelected && <Check className="w-3 h-3 text-emerald-600 shrink-0 ml-1.5" />}

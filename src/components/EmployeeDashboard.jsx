@@ -16,7 +16,7 @@ export default function EmployeeDashboard({
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-5">
-      {/* Header row matching Image 2 */}
+      {/* Header row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-tight">
@@ -36,7 +36,7 @@ export default function EmployeeDashboard({
         </button>
       </div>
 
-      {/* Top 3 Metric Cards matching Image 2 */}
+      {/* Top 3 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         {/* Metric 1: Approved Leave Taken */}
         <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs transition-all hover:border-slate-300">
@@ -70,9 +70,13 @@ export default function EmployeeDashboard({
 
         {/* Metric 3: Active Workspace User */}
         <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs transition-all hover:border-slate-300 flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-full ${currentUser.avatarColor || 'bg-blue-600'} text-white font-bold flex items-center justify-center text-xs shadow-2xs shrink-0`}>
-            {currentUser.initials}
-          </div>
+          {currentUser.avatar ? (
+            <img src={currentUser.avatar} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 shadow-2xs" />
+          ) : (
+            <div className={`w-10 h-10 rounded-full ${currentUser.avatarColor || 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-xs shadow-2xs shrink-0`}>
+              {currentUser.initials}
+            </div>
+          )}
           <div className="min-w-0">
             <div className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
               ACTIVE WORKSPACE USER
@@ -81,15 +85,14 @@ export default function EmployeeDashboard({
               {currentUser.name}
             </div>
             <div className="text-xs text-slate-500 truncate">
-              {currentUser.department}
+              {currentUser.username || 'Board Member'}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content Area: Empty State or Active Leaves */}
+      {/* Main Content Area */}
       {userLeaves.length === 0 ? (
-        /* Empty State directly matching Image 2 */
         <div className="bg-white rounded-2xl border border-dashed border-slate-300/90 p-8 sm:p-12 text-center shadow-2xs">
           <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3.5 border border-emerald-100">
             <CalendarDays className="w-6 h-6" />
@@ -107,7 +110,6 @@ export default function EmployeeDashboard({
           </button>
         </div>
       ) : (
-        /* Active User Leaves Table / Cards */
         <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
             <h3 className="font-semibold text-slate-900 text-xs sm:text-sm">
@@ -168,7 +170,7 @@ export default function EmployeeDashboard({
 
                   {leave.coverageNotes && (
                     <div className="text-[11px] text-slate-500 mb-2">
-                      <strong className="text-slate-700">Coverage Handover:</strong> {leave.coverageNotes}
+                      <strong className="text-slate-700">Coverage Plan:</strong> {leave.coverageNotes}
                     </div>
                   )}
 
@@ -181,15 +183,6 @@ export default function EmployeeDashboard({
                           <span className="text-slate-600 font-medium">{leave.statusNote}</span>
                         </>
                       )}
-                    </div>
-
-                    <div className="flex items-center gap-1 text-slate-600">
-                      <span>Attached:</span>
-                      {leave.attachedBoards?.map((b, i) => (
-                        <span key={i} className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-medium text-slate-700">
-                          {b}
-                        </span>
-                      ))}
                     </div>
                   </div>
                 </div>

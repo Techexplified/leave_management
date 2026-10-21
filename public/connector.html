@@ -64,7 +64,7 @@
 
               if (!records.length) {
                 try {
-                  var local = JSON.parse(localStorage.getItem('trello_leave_records_v1') || '[]');
+                  var local = JSON.parse(localStorage.getItem('trello_leave_records_v2') || '[]');
                   if (local.length) records = local;
                 } catch(e) {}
               }
