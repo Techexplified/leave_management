@@ -38,7 +38,6 @@ export default function App() {
           // 2. Fetch the currently logged-in Trello user
           const me = await getCurrentTrelloMember(t);
           if (me) {
-            // Match with board member if possible or use current user info
             const matched = members.find(m => m.id === me.id);
             setCurrentUser(matched || me);
           } else if (members.length > 0) {
@@ -145,7 +144,11 @@ export default function App() {
           )}
 
           {activeTab === 'board' && (
-            <BoardBadgesPreview records={records} />
+            <BoardBadgesPreview
+              records={records}
+              tContext={tContext}
+              boardName={boardName}
+            />
           )}
         </main>
       </div>

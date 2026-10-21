@@ -94,3 +94,21 @@ export async function getBoardName(t) {
   }
   return 'Active Trello Board';
 }
+
+// Fetch real lists and cards from the active Trello board
+export async function getBoardCardsAndLists(t) {
+  if (t && typeof t.lists === 'function' && typeof t.cards === 'function') {
+    try {
+      const [lists, cards] = await Promise.all([
+        t.lists('id', 'name'),
+        t.cards('id', 'name', 'idList', 'members', 'due')
+      ]);
+      if (Array.isArray(lists) && lists.length > 0) {
+        return { lists, cards: cards || [] };
+      }
+    } catch (e) {
+      console.warn('Could not fetch board lists/cards from Trello:', e);
+    }
+  }
+  return null;
+}
