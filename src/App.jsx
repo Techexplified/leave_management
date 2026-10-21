@@ -93,10 +93,12 @@ export default function App() {
     }
   };
 
-  // STRICT RULE: Pending count for Approvals tab: ONLY requests sent to the active user!
+  // STRICT RULE: Pending count for Approvals tab:
+  // ONLY requests sent to the active user AND NOT created by the active user!
   const pendingCount = records.filter(
     r => (r.status === 'Pending' || r.status === 'Discussion') &&
-         r.taggedApprovers?.includes(currentUser.id)
+         r.taggedApprovers?.includes(currentUser.id) &&
+         r.requesterId !== currentUser.id
   ).length;
 
   if (loading) {

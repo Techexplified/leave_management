@@ -10,8 +10,12 @@ export default function ManagerReviewView({
   const [discussionModal, setDiscussionModal] = useState(null);
   const [discussionNote, setDiscussionNote] = useState('');
 
-  // STRICT RULE: Only show requests that were explicitly sent to the current user!
-  const assignedRecords = records.filter(r => r.taggedApprovers?.includes(currentUser.id));
+  // STRICT RULE:
+  // 1. Only show requests sent to the current user (taggedApprovers.includes(currentUser.id))
+  // 2. You can NEVER see or approve your own request (requesterId !== currentUser.id)!
+  const assignedRecords = records.filter(
+    r => r.taggedApprovers?.includes(currentUser.id) && r.requesterId !== currentUser.id
+  );
 
   const pendingRecords = assignedRecords.filter(r => r.status === 'Pending' || r.status === 'Discussion');
   const reviewedRecords = assignedRecords.filter(r => r.status === 'Approved' || r.status === 'Rejected');
@@ -99,7 +103,7 @@ export default function ManagerReviewView({
         </div>
       </div>
 
-      {/* Active Approver Banner */}
+      {/* Approver Banner */}
       <div className="bg-blue-50/70 border border-blue-200/80 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2.5 text-xs text-blue-900 shadow-2xs">
         <div className="flex items-center gap-2">
           {currentUser.avatar ? (
@@ -122,7 +126,7 @@ export default function ManagerReviewView({
           <h3 className="text-sm font-bold text-slate-900 mb-1">Queue is clear!</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
             {filterTab === 'pending'
-              ? 'No leave requests have been assigned to you for approval.'
+              ? 'No pending leave requests have been assigned to you.'
               : 'No records found matching the selected filter.'}
           </p>
         </div>
@@ -207,7 +211,7 @@ export default function ManagerReviewView({
                   </div>
                 )}
 
-                {/* Sign-offs timeline */}
+                {/* Sign-offs history */}
                 {req.signOffs && req.signOffs.length > 0 && (
                   <div className="text-xs pt-2 border-t border-slate-100">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">

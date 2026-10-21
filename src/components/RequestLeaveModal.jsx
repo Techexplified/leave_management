@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, AlertTriangle, Check, UserCheck } from 'lucide-react';
+import { X, Calendar, AlertTriangle, Check, UserCheck, AlertCircle } from 'lucide-react';
 import { LEAVE_CATEGORIES, calculateBusinessDays } from '../data/mockData';
 
 export default function RequestLeaveModal({
@@ -17,10 +17,15 @@ export default function RequestLeaveModal({
   const [businessDays, setBusinessDays] = useState(0);
   const [reason, setReason] = useState('');
   const [coverageNotes, setCoverageNotes] = useState('');
-  const [selectedApprovers, setSelectedApprovers] = useState([]);
+  const [selectedApproverId, setSelectedApproverId] = useState('');
   const [overlapWarning, setOverlapWarning] = useState(null);
 
-  // Set default dates to upcoming Monday-Friday
+  // Candidate approvers: Strictly EXCLUDE the current user (you cannot approve your own leave!)
+  const candidateApprovers = boardMembers.filter(
+    m => m.id !== currentUser.id && m.username !== currentUser.username
+  );
+
+  // Set default dates
   useEffect(() => {
     if (isOpen && !startDate) {
       const today = new Date();
@@ -29,14 +34,19 @@ export default function RequestLeaveModal({
       const nextFri = new Date(nextMon);
       nextFri.setDate(nextMon.getDate() + 4);
 
-      const sStr = nextMon.toISOString().slice(0, 10);
-      const eStr = nextFri.toISOString().slice(0, 10);
-      setStartDate(sStr);
-      setEndDate(eStr);
+      setStartDate(nextMon.toISOString().slice(0, 10));
+      setEndDate(nextFri.toISOString().slice(0, 10));
     }
   }, [isOpen]);
 
-  // Recalculate business days and check for overlapping team leaves
+  // Auto-select first other board member as default approver
+  useEffect(() => {
+    if (candidateApprovers.length > 0 && !selectedApproverId) {
+      setSelectedApproverId(candidateApprovers[0].id);
+    }
+  }, [candidateApprovers, selectedApproverId]);
+
+  // Recalculate business days and check overlap
   useEffect(() => {
     if (startDate && endDate) {
       const days = calculateBusinessDays(startDate, endDate);
@@ -51,25 +61,7 @@ export default function RequestLeaveModal({
     }
   }, [startDate, endDate, existingRecords, currentUser]);
 
-  // Candidate approvers: other real members of this Trello board
-  const candidateApprovers = boardMembers.filter(m => m.id !== currentUser.id);
-
-  // Auto-select first available approver if none selected
-  useEffect(() => {
-    if (candidateApprovers.length > 0 && selectedApprovers.length === 0) {
-      setSelectedApprovers([candidateApprovers[0].id]);
-    }
-  }, [candidateApprovers]);
-
   if (!isOpen) return null;
-
-  const toggleApprover = (id) => {
-    if (selectedApprovers.includes(id)) {
-      setSelectedApprovers(selectedApprovers.filter(a => a !== id));
-    } else {
-      setSelectedApprovers([...selectedApprovers, id]);
-    }
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -81,8 +73,12 @@ export default function RequestLeaveModal({
       alert('Please provide a reason for the leave.');
       return;
     }
-    if (selectedApprovers.length === 0 && candidateApprovers.length > 0) {
-      alert('Please select at least 1 board member to approve your leave.');
+    if (!selectedApproverId) {
+      alert('Please select a board member to approve your leave.');
+      return;
+    }
+    if (selectedApproverId === currentUser.id) {
+      alert('You cannot approve your own leave request. Please send it to another member.');
       return;
     }
 
@@ -101,7 +97,8 @@ export default function RequestLeaveModal({
       reason,
       coverageNotes: coverageNotes.trim(),
       attachedBoards: [boardName || 'Trello Board'],
-      taggedApprovers: selectedApprovers.length > 0 ? selectedApprovers : [currentUser.id],
+      // ONLY the selected person receives this request:
+      taggedApprovers: [selectedApproverId],
       status: 'Pending',
       statusNote: 'Awaiting Review',
       submittedAt: new Date().toISOString(),
@@ -222,46 +219,32 @@ export default function RequestLeaveModal({
             />
           </div>
 
-          {/* Coverage Handover Plan */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Coverage / Handover Note <span className="text-slate-400 font-normal">(Optional)</span>
-            </label>
-            <input
-              type="text"
-              value={coverageNotes}
-              onChange={(e) => setCoverageNotes(e.target.value)}
-              placeholder="e.g. Tasks covered by colleagues on this board"
-              className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs"
-            />
-          </div>
-
-          {/* Tag Board Members for Approval (Dynamically from Board) */}
+          {/* Select Approver (Single selection - Excludes self) */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-semibold text-slate-700">
                 Send Request to Approver <span className="text-rose-500">*</span>
               </label>
-              <span className="text-[11px] font-medium text-slate-500">
-                {selectedApprovers.length} selected
-              </span>
             </div>
             <p className="text-[11px] text-slate-500 mb-2">
               Only the person selected below will receive this leave request and be able to approve it.
             </p>
 
             {candidateApprovers.length === 0 ? (
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-500 text-[11px] text-center">
-                You are currently the only member on this board.
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-800 text-[11px] flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong>No other board members found:</strong> You cannot approve your own leave request. Please invite your manager or colleague to this Trello board so they can approve your leaves.
+                </div>
               </div>
             ) : (
               <div className="space-y-1.5 max-h-40 overflow-y-auto p-1 border border-slate-200 rounded-xl bg-slate-50/40">
                 {candidateApprovers.map((member) => {
-                  const isSelected = selectedApprovers.includes(member.id);
+                  const isSelected = selectedApproverId === member.id;
                   return (
                     <div
                       key={member.id}
-                      onClick={() => toggleApprover(member.id)}
+                      onClick={() => setSelectedApproverId(member.id)}
                       className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-all ${
                         isSelected
                           ? 'bg-emerald-50/90 border-emerald-300 shadow-2xs'
@@ -282,12 +265,12 @@ export default function RequestLeaveModal({
                         </div>
                       </div>
 
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ml-2 transition-colors ${
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ml-2 transition-colors ${
                         isSelected
                           ? 'bg-emerald-600 border-emerald-600 text-white'
                           : 'border-slate-300 bg-white'
                       }`}>
-                        {isSelected && <Check className="w-3 h-3 stroke-3" />}
+                        {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
                       </div>
                     </div>
                   );
@@ -307,7 +290,12 @@ export default function RequestLeaveModal({
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer flex items-center gap-1.5"
+              disabled={candidateApprovers.length === 0}
+              className={`px-4 py-1.5 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5 ${
+                candidateApprovers.length === 0
+                  ? 'bg-slate-300 cursor-not-allowed'
+                  : 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'
+              }`}
             >
               <Check className="w-3.5 h-3.5" />
               <span>Send Request</span>
