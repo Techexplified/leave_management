@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, AlertTriangle, Check, UserCheck, AlertCircle } from 'lucide-react';
 import { LEAVE_CATEGORIES, calculateBusinessDays } from '../data/mockData';
 
+// Helper to get local date string YYYY-MM-DD
+function getTodayDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function RequestLeaveModal({
   isOpen,
   onClose,
@@ -11,6 +20,8 @@ export default function RequestLeaveModal({
   onSubmitLeave,
   existingRecords
 }) {
+  const todayStr = getTodayDateString();
+
   const [category, setCategory] = useState(LEAVE_CATEGORIES[0]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -25,17 +36,16 @@ export default function RequestLeaveModal({
     m => m.id !== currentUser.id && m.username !== currentUser.username
   );
 
-  // Set default dates
+  // Set default dates whenever modal is opened: MUST NEVER be in the past!
   useEffect(() => {
-    if (isOpen && !startDate) {
-      const today = new Date();
-      const nextMon = new Date(today);
-      nextMon.setDate(today.getDate() + ((1 + 7 - today.getDay()) % 7 || 7));
-      const nextFri = new Date(nextMon);
-      nextFri.setDate(nextMon.getDate() + 4);
-
-      setStartDate(nextMon.toISOString().slice(0, 10));
-      setEndDate(nextFri.toISOString().slice(0, 10));
+    if (isOpen) {
+      const today = getTodayDateString();
+      if (!startDate || startDate < today) {
+        setStartDate(today);
+        setEndDate(today);
+      } else if (!endDate || endDate < startDate) {
+        setEndDate(startDate);
+      }
     }
   }, [isOpen]);
 
@@ -63,10 +73,30 @@ export default function RequestLeaveModal({
 
   if (!isOpen) return null;
 
+  const handleClose = () => {
+    const today = getTodayDateString();
+    setReason('');
+    setCoverageNotes('');
+    setStartDate(today);
+    setEndDate(today);
+    onClose();
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const currentToday = getTodayDateString();
+
     if (!startDate || !endDate || businessDays <= 0) {
       alert('Please select a valid date range.');
+      return;
+    }
+    // Strict past-date prevention
+    if (startDate < currentToday) {
+      alert('Dates in the past cannot be selected for leave requests. Please select today or a future date.');
+      return;
+    }
+    if (endDate < startDate) {
+      alert('End date cannot be earlier than start date.');
       return;
     }
     if (!reason.trim()) {
@@ -106,7 +136,7 @@ export default function RequestLeaveModal({
     };
 
     onSubmitLeave(newRecord);
-    onClose();
+    handleClose();
   };
 
   return (
@@ -124,7 +154,7 @@ export default function RequestLeaveModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200/50 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -156,7 +186,7 @@ export default function RequestLeaveModal({
             </div>
           </div>
 
-          {/* Date Range Picker */}
+          {/* Date Range Picker (Past dates completely restricted) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -164,11 +194,28 @@ export default function RequestLeaveModal({
               </label>
               <input
                 type="date"
+                min={todayStr}
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val && val < todayStr) {
+                    setStartDate(todayStr);
+                    if (endDate && endDate < todayStr) {
+                      setEndDate(todayStr);
+                    }
+                  } else {
+                    setStartDate(val);
+                    if (endDate && val > endDate) {
+                      setEndDate(val);
+                    }
+                  }
+                }}
                 className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs cursor-pointer"
                 required
               />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Past dates disabled (min: Today)
+              </p>
             </div>
 
             <div>
@@ -177,12 +224,23 @@ export default function RequestLeaveModal({
               </label>
               <input
                 type="date"
+                min={startDate && startDate >= todayStr ? startDate : todayStr}
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={startDate}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const minAllowed = startDate && startDate >= todayStr ? startDate : todayStr;
+                  if (val && val < minAllowed) {
+                    setEndDate(minAllowed);
+                  } else {
+                    setEndDate(val);
+                  }
+                }}
                 className="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs cursor-pointer"
                 required
               />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Must be on or after start date
+              </p>
             </div>
           </div>
 

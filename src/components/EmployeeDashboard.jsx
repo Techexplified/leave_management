@@ -1,12 +1,22 @@
 import React from 'react';
 import { Plus, Clock, CheckCircle2, AlertCircle, CalendarDays, Trash2 } from 'lucide-react';
 
+function getTodayDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function EmployeeDashboard({
   currentUser,
   records,
   onRequestLeave,
   onDeleteLeave
 }) {
+  const todayStr = getTodayDateString();
+
   // Filter leaves submitted by the currently active user
   const userLeaves = records.filter(r => r.requesterId === currentUser.id);
 
@@ -145,9 +155,13 @@ export default function EmployeeDashboard({
 
                     <div className="flex items-center gap-2">
                       {isApproved && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          leave.endDate && leave.endDate < todayStr
+                            ? 'bg-slate-100 text-slate-600 border border-slate-200'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}>
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          Approved
+                          {leave.endDate && leave.endDate < todayStr ? 'Completed' : 'Approved'}
                         </span>
                       )}
                       {isPending && (

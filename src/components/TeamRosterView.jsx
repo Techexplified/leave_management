@@ -1,16 +1,35 @@
 import React, { useState } from 'react';
-import { Search, CheckCircle2, Users, ShieldCheck } from 'lucide-react';
+import { Search, CheckCircle2, Users, ShieldCheck, CalendarClock } from 'lucide-react';
 import TimelineView from './TimelineView';
+
+// Helper to get local date string YYYY-MM-DD
+function getTodayDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 export default function TeamRosterView({ records }) {
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'timeline'
+  const [filterScope, setFilterScope] = useState('upcoming'); // 'upcoming' | 'all'
   const [searchQuery, setSearchQuery] = useState('');
+  const todayStr = getTodayDateString();
 
   // Only approved leaves appear on the public roster
   const approvedRecords = records.filter(r => r.status === 'Approved');
 
+  // Filter based on scope (by default: active & upcoming leaves; past dates excluded from active roster)
+  const scopedRecords = approvedRecords.filter(r => {
+    if (filterScope === 'upcoming') {
+      return !r.endDate || r.endDate >= todayStr;
+    }
+    return true;
+  });
+
   // Search filter
-  const filteredRecords = approvedRecords.filter(r => {
+  const filteredRecords = scopedRecords.filter(r => {
     const approverName = r.signOffs && r.signOffs.length > 0 ? r.signOffs[r.signOffs.length - 1].approverName : '';
     return (
       r.requesterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -18,6 +37,8 @@ export default function TeamRosterView({ records }) {
       approverName.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
+
+  const activeUpcomingCount = approvedRecords.filter(r => !r.endDate || r.endDate >= todayStr).length;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 space-y-4">
@@ -37,28 +58,55 @@ export default function TeamRosterView({ records }) {
           </p>
         </div>
 
-        {/* View Switcher */}
-        <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200/90 text-xs font-semibold self-start sm:self-auto shrink-0">
-          <button
-            onClick={() => setViewMode('cards')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              viewMode === 'cards'
-                ? 'bg-white text-slate-900 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Roster Cards
-          </button>
-          <button
-            onClick={() => setViewMode('timeline')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              viewMode === 'timeline'
-                ? 'bg-white text-slate-900 shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Timeline View
-          </button>
+        {/* View Switcher & Scope Filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Active vs All Filter */}
+          <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200/90 text-xs font-semibold">
+            <button
+              onClick={() => setFilterScope('upcoming')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                filterScope === 'upcoming'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Active & Upcoming ({activeUpcomingCount})
+            </button>
+            <button
+              onClick={() => setFilterScope('all')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                filterScope === 'all'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              All Records ({approvedRecords.length})
+            </button>
+          </div>
+
+          {/* Cards vs Timeline Switcher */}
+          <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200/90 text-xs font-semibold shrink-0">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                viewMode === 'cards'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Roster Cards
+            </button>
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                viewMode === 'timeline'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Timeline View
+            </button>
+          </div>
         </div>
       </div>
 
@@ -114,10 +162,18 @@ export default function TeamRosterView({ records }) {
                       </div>
                     </div>
 
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      Approved
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {item.endDate && item.endDate < todayStr ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                          Completed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          Approved
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Unavailability Window Box */}
