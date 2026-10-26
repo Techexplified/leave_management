@@ -1,7 +1,106 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#0079bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-  <line x1="16" y1="2" x2="16" y2="6"></line>
-  <line x1="8" y1="2" x2="8" y2="6"></line>
-  <line x1="3" y1="10" x2="21" y2="10"></line>
-  <circle cx="12" cy="15" r="2"></circle>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="60%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+
+    <!-- Top Highlight -->
+    <linearGradient id="highlightGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Calendar Body Shadow -->
+    <filter id="cardShadow" x="-10%" y="-10%" width="125%" height="130%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#022c22" flood-opacity="0.35" />
+    </filter>
+
+    <!-- Sun Gradient -->
+    <linearGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+
+    <!-- Airplane / Vacation Gradient -->
+    <linearGradient id="planeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#065F46" />
+    </linearGradient>
+
+    <!-- Checkmark Badge Gradient -->
+    <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+  </defs>
+
+  <!-- App Icon Squircle Container -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect x="0" y="0" width="512" height="256" rx="112" fill="url(#highlightGrad)" />
+
+  <!-- Outer Border Stroke -->
+  <rect x="2" y="2" width="508" height="508" rx="110" fill="none" stroke="#34D399" stroke-width="4" stroke-opacity="0.4" />
+
+  <!-- Calendar Page Base with Shadow -->
+  <g filter="url(#cardShadow)">
+    <!-- White Calendar Backing -->
+    <rect x="96" y="112" width="320" height="304" rx="36" fill="#FFFFFF" />
+
+    <!-- Calendar Header Stripe -->
+    <path d="M 96 148 C 96 128.1 112.1 112 132 112 L 380 112 C 399.9 112 416 128.1 416 148 L 416 188 L 96 188 Z" fill="#059669" />
+
+    <!-- Calendar Month Line Accents -->
+    <rect x="136" y="142" width="96" height="16" rx="8" fill="#A7F3D0" />
+  </g>
+
+  <!-- Binder Rings / Pegs -->
+  <!-- Left Peg -->
+  <rect x="160" y="88" width="24" height="48" rx="12" fill="#E2E8F0" stroke="#047857" stroke-width="4" />
+  <circle cx="172" cy="112" r="4" fill="#047857" />
+
+  <!-- Right Peg -->
+  <rect x="328" y="88" width="24" height="48" rx="12" fill="#E2E8F0" stroke="#047857" stroke-width="4" />
+  <circle cx="340" cy="112" r="4" fill="#047857" />
+
+  <!-- Calendar Content Area -->
+  <!-- Vacation Sun (Morning / Holiday) -->
+  <circle cx="330" cy="254" r="44" fill="url(#sunGrad)" opacity="0.9" />
+
+  <!-- Calendar Date Dots (Subtle) -->
+  <circle cx="148" cy="232" r="7" fill="#CBD5E1" />
+  <circle cx="196" cy="232" r="7" fill="#CBD5E1" />
+  <circle cx="244" cy="232" r="7" fill="#CBD5E1" />
+
+  <circle cx="148" cy="280" r="7" fill="#CBD5E1" />
+  <circle cx="196" cy="280" r="7" fill="#CBD5E1" />
+  <circle cx="244" cy="280" r="7" fill="#CBD5E1" />
+
+  <circle cx="148" cy="328" r="7" fill="#CBD5E1" />
+  <circle cx="196" cy="328" r="7" fill="#CBD5E1" />
+
+  <!-- Vacation Paper Airplane (Departure for Time-Off / Leave) -->
+  <g transform="translate(180, 225) rotate(-12)">
+    <!-- Plane Shadow -->
+    <path d="M 12 118 L 140 50 L 52 144 Z" fill="#022c22" opacity="0.15" />
+    <!-- Main Plane Wings -->
+    <polygon points="0,96 148,32 56,128" fill="#10B981" />
+    <polygon points="56,128 148,32 88,140" fill="#047857" />
+    <polygon points="56,128 88,140 68,160" fill="#064E3B" />
+    <!-- Highlight Fold -->
+    <polygon points="24,96 148,32 64,120" fill="#34D399" opacity="0.8" />
+  </g>
+
+  <!-- Flight Vapor Trail (Dotted Curve) -->
+  <path d="M 140 360 Q 180 340 220 310" fill="none" stroke="#10B981" stroke-width="5" stroke-dasharray="6,6" stroke-linecap="round" opacity="0.7" />
+
+  <!-- Approved Checkmark Seal in Bottom Right Corner -->
+  <g transform="translate(356, 356)">
+    <!-- Badge Background Circle -->
+    <circle cx="0" cy="0" r="38" fill="url(#badgeGrad)" stroke="#FFFFFF" stroke-width="6" />
+    <!-- Checkmark Path -->
+    <path d="M -14 0 L -4 10 L 16 -10" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
 </svg>

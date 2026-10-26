@@ -12,10 +12,8 @@ export default function Header({
       <div className="max-w-6xl mx-auto px-3 sm:px-5">
         <div className="flex items-center justify-between h-13 gap-2">
           {/* Logo & Title */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-              <Calendar className="w-3.5 h-3.5" />
-            </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <img src="/icon.svg" alt="Leave Management Logo" className="w-7 h-7 rounded-lg shadow-xs" />
             <div className="hidden lg:block">
               <span className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight">Leave Management</span>
             </div>
